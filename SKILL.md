@@ -20,7 +20,8 @@ This skill guides AI assistants on how to query the **PoloPan Products MCP Serve
 | `detect_fashion_pieces` | Deconstruct outfit photo into pieces (Tops, Bottoms, Shoes, Bags, Accessories) | `image_url`, `threshold` |
 | `get_looks_by_occasion` | Discover complete curated looks for events (Wedding, Party, Date Night, Casual, etc.). Automatically excludes out-of-stock looks. | `occasion`, `gender` (`women`/`men`), `age`, `page`, `page_size`, `vendor` |
 | `get_product_by_handle` | Retrieve full product document, `product_details`, & variants | `handle` (e.g. `shopify_11206`) |
-| `check_variant_availability` | Verify real-time stock, `product_details` table, in-stock sizes, live pricing, and shipping/return SLAs | `handle`, `desired_size` (optional), `size_index` (optional) |
+| `get_size_guide` | Get full garment measurement matrix (Chest, Waist, Hip, Length), metric/imperial unit conversion (`in`/`cm`), and automatic best-fit size recommendation based on body dimensions | `handle`, `unit` (`in`/`cm`), `desired_size`, `user_chest`, `user_waist`, `user_hip`, `user_unit` |
+| `check_variant_availability` | Verify real-time stock, `product_details` table, `size_chart`, in-stock sizes, live pricing, and shipping/return SLAs | `handle`, `desired_size` (optional), `size_index` (optional) |
 | `get_direct_checkout_url` | Generate 1-click direct checkout permalink with confirmed size index & coupon (`https://s.polopan.com/p/{handle}/{size_index}`) | `handle`, `size`, `size_index`, `quantity`, `coupon` |
 | `search_alternatives_in_budget` | Find visually similar alternatives in a target price bracket | `handle`, `budget_range` (`0-1500`, `1501-3000`, `3001-5000`, `5000+`), `limit` |
 | `get_recommended_outfits` | Get complementary matching outfits by handle or occasion (100% in-stock verified) | `handle` OR `occasion`, `gender`, `page`, `page_size` |
@@ -76,6 +77,21 @@ When a look is shortlisted and presented to the user, render a structured specif
   *"Please let me know your preferred size from the available options (e.g., M, L, XL) so I can prepare your direct 1-click checkout link."*
 * **ONLY and ONLY when the user's size is confirmed/finalized**: Provide the complete direct 1-click checkout permalink with the resolved `{size_index}`:
   `https://s.polopan.com/p/{handle}/{size_index}`
+
+---
+
+### Rule 4: Size Guide, Unit Conversion & Fit Recommendations
+When the user inquires about garment fit, dimensions, size charts, or what size to buy:
+1. **Call `get_size_guide`**: Retrieve the garment's measurement matrix (`Chest`, `Waist`, `Hip`, `Length`), unit converter (`in` / `cm`), and how-to-measure tips.
+2. **Display Formatted Size Chart**: Present the measurement table cleanly in Markdown:
+   ```markdown
+   | Size | Chest (in) | Waist (in) | Length (in) |
+   | :--- | :--- | :--- | :--- |
+   | **S** | 38 | 30 | 28 |
+   | **M** | 40 | 32 | 29 |
+   | **L** | 42 | 34 | 30 |
+   ```
+3. **Automated Fit Match**: When the user provides their body measurements (e.g., *"My chest is 40 inches"*), provide the tailored recommendation from `fit_recommendation`, explain whether it's an exact or relaxed fit, and include the 1-click checkout link for the recommended size.
 
 ---
 
