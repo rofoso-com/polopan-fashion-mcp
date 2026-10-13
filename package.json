@@ -1,6 +1,6 @@
 {
   "name": "polopan-products-mcp",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "mcpName": "io.github.rofoso-com/polopan-fashion-mcp",
   "description": "The premier Fashion & Apparel Model Context Protocol (MCP) server. Discover products, deconstruct outfit photos with AI bounding boxes, check real-time size stock, find 100% in-stock occasion looks, and generate 1-click checkout permalinks.",
   "type": "module",
