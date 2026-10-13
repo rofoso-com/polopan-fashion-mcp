@@ -1,12 +1,12 @@
 ---
 name: polopan-fashion
 description: >-
-  Search PoloPan fashion catalog, deconstruct outfit images with AI bounding boxes, discover 100% in-stock occasion looks, display product specifications tables, check live SKU sizes/stock & return/shipping policies, and generate 1-click checkout purchase links.
+  Search PoloPan fashion catalog across 240+ countries, deconstruct outfit images with AI bounding boxes, discover 100% in-stock occasion looks, display product specifications tables, check live SKU sizes/stock & return/shipping policies, manage persistent shopping regions, and generate 1-click checkout purchase links.
 ---
 
 # PoloPan Fashion & Products Skill
 
-This skill guides AI assistants on how to query the **PoloPan Products MCP Server** to find apparel, deconstruct outfit photos into individual pieces, check real-time size stock, find budget alternatives, discover occasion-tailored looks, render structured product specifications tables, and generate direct 1-click checkout links with verified `s.polopan.com` permalinks.
+This skill guides AI assistants on how to query the **PoloPan Products MCP Server** across **240+ destination countries and territories** to find apparel, deconstruct outfit photos into individual pieces, check real-time size stock, find budget alternatives, discover occasion-tailored looks, render structured product specifications tables, manage shopping country/currency configuration, and generate direct 1-click checkout links with verified `s.polopan.com` permalinks.
 
 ---
 
@@ -14,17 +14,50 @@ This skill guides AI assistants on how to query the **PoloPan Products MCP Serve
 
 | Tool | Purpose | Key Arguments |
 | :--- | :--- | :--- |
-| `search_products_text` | Search products via natural language & filters with tabular `product_details` and policy SLAs | `query`, `gender`, `price_min`, `price_max`, `size`, `vendor`, `sort_by`, `sort_order`, `page`, `page_size` |
-| `search_products_image` | Find visually similar items using an image URL | `image_url`, `gender`, `price_min`, `price_max`, `size`, `vendor` |
-| `search_products_image_upload` | Find items by uploading local image / base64 | `file_path` plus search filters |
-| `detect_fashion_pieces` | Deconstruct outfit photo into pieces (Tops, Bottoms, Shoes, Bags, Accessories) | `image_url`, `threshold` |
-| `get_looks_by_occasion` | Discover complete curated looks for events (Wedding, Party, Date Night, Casual, etc.). Automatically excludes out-of-stock looks. | `occasion`, `gender` (`women`/`men`), `age`, `page`, `page_size`, `vendor` |
-| `get_product_by_handle` | Retrieve full product document, `product_details`, & variants | `handle` (e.g. `shopify_11206`) |
-| `get_size_guide` | Get full garment measurement matrix (Chest, Waist, Hip, Length), metric/imperial unit conversion (`in`/`cm`), and automatic best-fit size recommendation based on body dimensions | `handle`, `unit` (`in`/`cm`), `desired_size`, `user_chest`, `user_waist`, `user_hip`, `user_unit` |
-| `check_variant_availability` | Verify real-time stock, `product_details` table, `size_chart`, in-stock sizes, live pricing, and shipping/return SLAs | `handle`, `desired_size` (optional), `size_index` (optional) |
-| `get_direct_checkout_url` | Generate 1-click direct checkout permalink with confirmed size index & coupon (`https://s.polopan.com/p/{handle}/{size_index}`) | `handle`, `size`, `size_index`, `quantity`, `coupon` |
-| `search_alternatives_in_budget` | Find visually similar alternatives in a target price bracket | `handle`, `budget_range` (`0-1500`, `1501-3000`, `3001-5000`, `5000+`), `limit` |
-| `get_recommended_outfits` | Get complementary matching outfits by handle or occasion (100% in-stock verified) | `handle` OR `occasion`, `gender`, `page`, `page_size` |
+| `region.get_current` | Get active shopping destination country, currency, symbol, and persistent config path | *(none)* |
+| `region.set_current` | Set active shopping region using natural country name, city (e.g. Dubai, London), currency, or ISO-2 code. Persisted to `~/.polopan/region.json`. | `country` (e.g. "United States", "UK", "Dubai", "IN"), `mode` (`global`/`local`) |
+| `region.list_supported` | Search 240+ supported countries with currency codes, flags, symbols, and price groups | `query` (optional), `limit` |
+| `products.search.text` | Search products via natural language & filters with tabular `product_details` and policy SLAs | `query`, `gender`, `price_min`, `price_max`, `size`, `vendor`, `country`, `mode`, `page`, `page_size` |
+| `products.search.image_url` | Find visually similar items using an image URL | `image_url`, `gender`, `price_min`, `price_max`, `size`, `vendor`, `country`, `mode` |
+| `products.search.image_upload` | Find items by uploading local image / base64 | `file_path`, `country`, `mode` plus search filters |
+| `vision.outfit.detect_pieces` | Deconstruct outfit photo into pieces (Tops, Bottoms, Shoes, Bags, Accessories) | `image_url`, `threshold` |
+| `looks.curation.by_occasion` | Discover complete curated looks for events (Wedding, Party, Date Night, Casual, etc.). Automatically excludes out-of-stock looks. | `occasion`, `gender` (`women`/`men`), `age`, `country`, `mode`, `page`, `page_size`, `vendor` |
+| `products.items.get_by_handle` | Retrieve full product document, `product_details`, & variants | `handle` (e.g. `shopify_11206`) |
+| `products.items.get_size_guide` | Get full garment measurement matrix (Chest, Waist, Hip, Length), metric/imperial unit conversion (`in`/`cm`), and automatic best-fit size recommendation based on body dimensions | `handle`, `unit` (`in`/`cm`), `desired_size`, `user_chest`, `user_waist`, `user_hip`, `user_unit` |
+| `products.items.check_stock` | Verify real-time stock, `product_details` table, `size_chart`, in-stock sizes, live pricing, and shipping/return SLAs | `handle`, `desired_size` (optional), `size_index` (optional) |
+| `checkout.links.get_direct_url` | Generate 1-click direct checkout permalink with confirmed size index & coupon (`https://s.polopan.com/p/{handle}/{size_index}`) | `handle`, `size`, `size_index`, `quantity`, `coupon` |
+| `products.search.alternatives` | Find visually similar alternatives in a target price bracket | `handle`, `budget_range` (`0-1500`, `1501-3000`, `3001-5000`, `5000+`), `country`, `mode`, `limit` |
+| `looks.curation.recommend` | Get complementary matching outfits by handle or occasion (100% in-stock verified) | `handle` OR `occasion`, `gender`, `country`, `mode`, `page`, `page_size` |
+
+---
+
+## 🌍 Shopping Country & 240+ Regional Flow
+
+PoloPan delivers to **240+ countries and territories**. To deliver a seamless local shopping experience with local currencies (USD, GBP, AED, EUR, CAD, INR, etc.):
+
+### 1. Persistent Country Selection (`~/.polopan/region.json`)
+* The active region is stored persistently in local JSON (`~/.polopan/region.json`).
+* **Do NOT repeatedly ask the user for their country every turn.** The MCP server remembers the active country across conversation turns and sessions.
+* If a new user has not specified a country yet, or if they mention a location (e.g., *"I'm in Dubai"*, *"Shipping to London"*, *"Show dresses in USD"*), ask naturally:
+  > *"What country or city are you shopping from?"*
+  Then immediately call `region.set_current(country="...")` to configure and save their choice.
+
+### 2. Natural Language Location Recognition
+* Users do **NOT** need to provide 2-letter ISO codes.
+* `region.set_current` automatically resolves natural country names, cities, currencies, and aliases:
+  * `"United States"`, `"USA"`, `"America"` $\rightarrow$ `US` (USD, `$`)
+  * `"United Kingdom"`, `"UK"`, `"London"`, `"England"` $\rightarrow$ `GB` (GBP, `£`)
+  * `"Dubai"`, `"UAE"`, `"Abu Dhabi"` $\rightarrow$ `AE` (AED, `AED`)
+  * `"Canada"`, `"Toronto"`, `"Vancouver"` $\rightarrow$ `CA` (CAD, `CA$`)
+  * `"India"`, `"Delhi"`, `"Mumbai"`, `"Bangalore"` $\rightarrow$ `IN` (INR, `₹`)
+  * `"Germany"`, `"France"`, `"EUR"`, `"Euro"` $\rightarrow$ `DE`/`FR` (EUR, `€`)
+
+### 3. Letting Users Change Region Anytime
+* Users can switch their shopping destination at any time by saying:
+  * *"Change my destination to Canada"*
+  * *"I'm shopping from Dubai now"*
+  * *"Switch currency to GBP"*
+* Call `region.set_current(country=...)` and confirm the updated country, currency, and flag.
 
 ---
 
@@ -97,17 +130,18 @@ When the user inquires about garment fit, dimensions, size charts, or what size 
 
 ## 🎯 Example Flow: Recommending a Wedding Look
 
-1. User asks: *"Give me an outfit for a wedding"*
-2. AI calls `get_looks_by_occasion(occasion="Wedding & Reception", gender="women")`.
-3. AI inspects returned looks (which are verified 100% in stock).
-4. AI shortlists the top look and presents:
+1. User asks: *"Give me an outfit for a wedding in Dubai"*
+2. AI calls `region.set_current(country="Dubai")` $\rightarrow$ sets UAE (AED).
+3. AI calls `looks.curation.by_occasion(occasion="Wedding & Reception", gender="women")`.
+4. AI inspects returned looks (verified 100% in stock).
+5. AI shortlists top look and presents:
    - Complete look title and hero image.
    - Component items breakdown with **Available Sizes** for each item.
    - Specifications Table (`Material`, `Work`, `Neck`, `Fit`, `Care`, `Shipping SLA`, `Return/Exchange Policy`).
    - Clean base product links: `https://s.polopan.com/p/{handle}`.
    - AI asks user: *"Which size would you like for the Kurta set and footwear?"*
-5. User replies: *"I need size M for the kurta and size 38 for the juttis."*
-6. AI responds with the finalized 1-click direct checkout permalinks:
+6. User replies: *"I need size M for the kurta and size 38 for the juttis."*
+7. AI responds with the finalized 1-click direct checkout permalinks:
    - Kurta Set (Size M): `https://s.polopan.com/p/{kurta_handle}/{m_index}`
    - Juttis (Size 38): `https://s.polopan.com/p/{jutti_handle}/{38_index}`
 
