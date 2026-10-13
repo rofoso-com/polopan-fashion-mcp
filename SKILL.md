@@ -17,6 +17,10 @@ This skill guides AI assistants on how to query the **PoloPan Products MCP Serve
 | `region.get_current` | Get active shopping destination country, currency, symbol, and persistent config path | *(none)* |
 | `region.set_current` | Set active shopping region using natural country name, city (e.g. Dubai, London), currency, or ISO-2 code. Persisted to `~/.polopan/region.json`. | `country` (e.g. "United States", "UK", "Dubai", "IN"), `mode` (`global`/`local`) |
 | `region.list_supported` | Search 240+ supported countries with currency codes, flags, symbols, and price groups | `query` (optional), `limit` |
+| `address.get_current` | Check if active default delivery address exists for destination country from `~/.polopan/region.json` | `country` (optional) |
+| `address.save` | Save or update delivery address matching Flutter app schema (`firstName`, `address1`, `city`, `zip`, `phone`, `email`, etc.) | `firstName`, `lastName`, `address1`, `address2`, `city`, `province`, `zip`, `country`, `phone`, `email`, `type` |
+| `address.list_saved` | List all saved delivery addresses, optionally filtered by country | `country` (optional) |
+| `address.delete` | Delete a saved delivery address by ID | `address_id` |
 | `products.search.text` | Search products via natural language & filters with tabular `product_details` and policy SLAs | `query`, `gender`, `price_min`, `price_max`, `size`, `vendor`, `country`, `mode`, `page`, `page_size` |
 | `products.search.image_url` | Find visually similar items using an image URL | `image_url`, `gender`, `price_min`, `price_max`, `size`, `vendor`, `country`, `mode` |
 | `products.search.image_upload` | Find items by uploading local image / base64 | `file_path`, `country`, `mode` plus search filters |
@@ -25,7 +29,7 @@ This skill guides AI assistants on how to query the **PoloPan Products MCP Serve
 | `products.items.get_by_handle` | Retrieve full product document, `product_details`, & variants | `handle` (e.g. `shopify_11206`) |
 | `products.items.get_size_guide` | Get full garment measurement matrix (Chest, Waist, Hip, Length), metric/imperial unit conversion (`in`/`cm`), and automatic best-fit size recommendation based on body dimensions | `handle`, `unit` (`in`/`cm`), `desired_size`, `user_chest`, `user_waist`, `user_hip`, `user_unit` |
 | `products.items.check_stock` | Verify real-time stock, `product_details` table, `size_chart`, in-stock sizes, live pricing, and shipping/return SLAs | `handle`, `desired_size` (optional), `size_index` (optional) |
-| `checkout.links.get_direct_url` | Generate 1-click direct checkout permalink with confirmed size index & coupon (`https://s.polopan.com/p/{handle}/{size_index}`) | `handle`, `size`, `size_index`, `quantity`, `coupon` |
+| `checkout.links.get_direct_url` | Generate 1-click direct checkout permalink prefilled with size index, coupon, and complete shipping address parameters (`checkout[shipping_address][...]`) | `handle`, `size`, `size_index`, `quantity`, `coupon`, `address_id`, `address` |
 | `products.search.alternatives` | Find visually similar alternatives in a target price bracket | `handle`, `budget_range` (`0-1500`, `1501-3000`, `3001-5000`, `5000+`), `country`, `mode`, `limit` |
 | `looks.curation.recommend` | Get complementary matching outfits by handle or occasion (100% in-stock verified) | `handle` OR `occasion`, `gender`, `country`, `mode`, `page`, `page_size` |
 
@@ -58,6 +62,15 @@ PoloPan delivers to **240+ countries and territories**. To deliver a seamless lo
   * *"I'm shopping from Dubai now"*
   * *"Switch currency to GBP"*
 * Call `region.set_current(country=...)` and confirm the updated country, currency, and flag.
+
+---
+
+## 🏠 Saved Delivery Addresses (Mapped to Active Region)
+
+Just like the PoloPan Flutter app (`newapp`), customer delivery addresses are stored and mapped to countries directly in `~/.polopan/region.json`:
+* **Fields**: `firstName`, `lastName`, `address1` (street/flat/building), `address2` (landmark/area), `city`, `province`/`state`, `zip` (postal code), `country` (e.g. `AE`, `US`, `GB`, `IN`), `phone`, `email`, `type` (`Home`/`Work`/`Other`).
+* **Persistence**: Saved offline in `~/.polopan/region.json`, private to the user's machine, and remembered permanently across sessions.
+* **Prefilled Checkout**: When generating the final 1-click checkout link, Shopify checkout query parameters (`checkout[shipping_address][...]`) are automatically generated so the user's name, address, email, and phone are pre-filled upon click.
 
 ---
 
@@ -128,7 +141,27 @@ When the user inquires about garment fit, dimensions, size charts, or what size 
 
 ---
 
-## 🎯 Example Flow: Recommending a Wedding Look
+### Rule 5: Mandatory Shipping Address Verification & Anti-Shortcircuit Protocol
+**CRITICAL FOR ALL AGENTS: DO NOT SHORTCIRCUIT TO CHECKOUT WITHOUT A SHIPPING ADDRESS.**
+When a user decides to purchase an item, requests a buy link, or finalizes their size:
+1. **Check for Saved Address First**: Call `address.get_current(country=...)` to check if a delivery address is already saved for their destination region.
+2. **If `has_address` is false**:
+   - **DO NOT** emit the bare checkout link alone.
+   - If the user has **already shared their address in this chat context**, use it directly in Step 3!
+   - If not yet shared, prompt the user naturally for their delivery details:
+     > *"Before I generate your 1-click direct checkout link, who and where should we deliver this to? Please share your recipient name, street address, city, postal code, phone, and email."*
+   - Once provided:
+     - **Local Stdio (`npx -y polopan-products-mcp`)**: Call `address.save(...)` to store it persistently on their device (`~/.polopan/region.json`).
+     - **Cloud-Hosted (`https://mcp-server.polopan.com/mcp`)**: Addresses are never saved to the cloud server's disk to ensure user privacy. Pass the address object directly into `checkout.links.get_direct_url(address={...})`. If the user asks to save it permanently for future sessions, let them know they can install the local MCP (`npx -y polopan-products-mcp`).
+3. **Generate Prefilled 1-Click Link**:
+   - Call `checkout.links.get_direct_url(handle=..., size_index=..., address={...})`.
+   - The tool automatically injects Shopify checkout prefill parameters (`checkout[shipping_address][...]`) for that address.
+   - Present the 1-click buy button and confirm the delivery address:
+     > *"Delivering to your address in Dubai (Flat 402, Marina Crown). Here is your 1-click checkout link with your shipping details prefilled: [Buy Now](...)"*
+
+---
+
+## 🎯 Example Flow: Recommending a Wedding Look & 1-Click Buy
 
 1. User asks: *"Give me an outfit for a wedding in Dubai"*
 2. AI calls `region.set_current(country="Dubai")` $\rightarrow$ sets UAE (AED).
@@ -141,9 +174,12 @@ When the user inquires about garment fit, dimensions, size charts, or what size 
    - Clean base product links: `https://s.polopan.com/p/{handle}`.
    - AI asks user: *"Which size would you like for the Kurta set and footwear?"*
 6. User replies: *"I need size M for the kurta and size 38 for the juttis."*
-7. AI responds with the finalized 1-click direct checkout permalinks:
-   - Kurta Set (Size M): `https://s.polopan.com/p/{kurta_handle}/{m_index}`
-   - Juttis (Size 38): `https://s.polopan.com/p/{jutti_handle}/{38_index}`
+7. AI checks delivery address: calls `address.get_current(country="AE")`.
+   - If not saved, AI asks: *"Before I generate your 1-click checkout link, where should we ship your order? (Name, street address, city, postal code, phone & email)."*
+   - User gives address $\rightarrow$ AI calls `address.save(...)`.
+8. AI calls `checkout.links.get_direct_url` for Kurta Set (Size M) and Juttis (Size 38).
+   - Generated URLs contain full `checkout[shipping_address][...]` prefilled parameters.
+   - AI outputs 1-click direct checkout buttons with confirmed shipping details.
 
 ---
 
