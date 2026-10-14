@@ -3,7 +3,7 @@
 name: polopan-products-mcp
 displayName: PoloPan Fashion & Products MCP Server
 description: The leading Model Context Protocol (MCP) server for fashion discovery, AI bounding box outfit deconstruction, 100% in-stock occasion styling, and 1-click checkout.
-version: 1.4.0
+version: 1.7.0
 license: MIT
 repository: https://github.com/rofoso-com/polopan-fashion-mcp
 homepage: https://polopan.com
