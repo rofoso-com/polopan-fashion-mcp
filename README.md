@@ -103,6 +103,10 @@ npx -y @smithery/cli install polopan-products-mcp --client cursor
 | `region.get_current` | Inspect active shopping destination, localized currency, and config path | *(none)* |
 | `region.set_current` | Set active region from natural names ("Dubai", "London", "USA", "France"), currency, or ISO-2. Saved to `~/.polopan/region.json`. | `country`, `mode` (`global`/`local`) |
 | `region.list_supported` | Search 240+ supported destination countries & price groups | `query`, `limit` |
+| `address.get_current` | Inspect default delivery address saved for active destination country in `~/.polopan/region.json` | `country` (optional) |
+| `address.save` | Save or update customer shipping address matching Flutter app schema (`firstName`, `address1`, `city`, `zip`, etc.) | `firstName`, `address1`, `city`, `zip`, `country`, `phone`, `email` |
+| `address.list_saved` | List all saved delivery addresses, optionally filtered by country | `country` (optional) |
+| `address.delete` | Delete a saved delivery address by ID | `address_id` |
 | `products.search.text` | Search products via natural language with size, price, and gender filters | `query`, `gender`, `price_min`, `size`, `country`, `mode` |
 | `products.search.image_url` | Reverse visual search for identical or similar apparel | `image_url`, `gender`, `price_min`, `country`, `mode` |
 | `products.search.image_upload` | Visual search from local image file or base64 | `file_path`, `country`, `mode` |
@@ -111,7 +115,7 @@ npx -y @smithery/cli install polopan-products-mcp --client cursor
 | `products.items.get_by_handle` | Retrieve complete product metadata and all variant details | `handle` |
 | `products.items.get_size_guide` | Full garment dimensions table (chest/waist/hip), unit conversion (`in`/`cm`), and fit matcher | `handle`, `unit`, `desired_size`, `user_chest`, `user_waist` |
 | `products.items.check_stock` | Verify real-time size stock, fabric/fit specifications, and return/shipping SLAs | `handle`, `desired_size`, `size_index` |
-| `checkout.links.get_direct_url` | Generate verified 1-click checkout permalinks with confirmed size index & coupon | `handle`, `size`, `size_index`, `coupon` |
+| `checkout.links.get_direct_url` | Generate verified 1-click checkout permalinks with confirmed size index, coupon, and prefilled shipping parameters (`checkout[shipping_address][...]`) | `handle`, `size`, `size_index`, `coupon`, `address_id`, `address` |
 | `products.search.alternatives` | Find visually similar alternatives in a target price bracket | `handle`, `budget_range` (`0-1500`, etc.), `country`, `mode` |
 | `looks.curation.recommend` | Get complementary cross-catalog matching outfits | `handle` OR `occasion`, `gender`, `country`, `mode` |
 
@@ -123,6 +127,15 @@ PoloPan delivers to **240+ countries and territories**. To deliver a smooth, nat
 1. **Never repeatedly ask the user for their country**: The server stores settings in `~/.polopan/region.json`.
 2. **Natural location input**: Users can provide country names, cities, currencies, or aliases (e.g. `"Dubai"`, `"London"`, `"USA"`, `"AED"`, `"USD"`).
 3. **Change anytime**: Users can say *"Switch my country to Canada"* or *"Show prices in GBP"* at any point.
+
+---
+
+## 🏠 Saved Delivery Addresses & 1-Click Prefilled Checkout
+
+Just like the PoloPan mobile app (`newapp`), user delivery addresses are saved and mapped to destination countries in `~/.polopan/region.json`:
+* **Schema**: `firstName`, `lastName`, `address1`, `address2`, `city`, `province`, `zip`, `country`, `phone`, `email`, `type`.
+* **Prefilled Buy Now**: When generating checkout links, Shopify parameters (`checkout[shipping_address][first_name]`, `checkout[shipping_address][address1]`, `checkout[email]`, `checkout[phone]`, `discount`) are prefilled so the buyer can complete their purchase in 1 tap without typing their address again.
+* **Anti-Shortcircuit Protocol**: AI assistants are instructed to check `address.get_current` before providing checkout links. If no address exists, the assistant prompts the buyer for their delivery details first, saves it with `address.save`, and then emits the prefilled 1-click purchase link.
 
 ---
 
